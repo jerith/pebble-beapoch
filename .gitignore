@@ -15,3 +15,17 @@
 *.exe
 *.out
 *.app
+
+# SDK stuff
+/build
+/include
+/lib
+/resources/wscript
+/tools
+/waf
+/wscript
+
+# Build stuff
+*.ld
+/.lock-waf*
+/.waf*
