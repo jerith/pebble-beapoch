@@ -1,0 +1,18 @@
+{
+    "friendlyVersion": "VERSION",
+    "versionDefName": "APP_RESOURCES",
+    "media": [
+        {
+            "type": "font",
+            "defName": "FONT_ROBOTO_CONDENSED_19",
+            "file": "fonts/Roboto-Condensed.ttf"
+        },
+
+        {
+            "type": "font",
+            "characterRegex": "[:0-9]",
+            "defName": "FONT_ROBOTO_BOLD_SUBSET_32",
+            "file": "fonts/Roboto-Bold.ttf"
+        }
+    ]
+}
