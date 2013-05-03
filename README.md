@@ -6,7 +6,14 @@ Pebble watch face that displays Unix time and Swatch .beats.
 This project basically exists because I wanted to play with my shiny new
 Pebble.
 
-MIT licensed. See the LICENSE file for details.
+License
+-------
+
+The code uses the MIT license. See the LICENSE file for details.
+
+Three third-party fonts (Droid Sans, Fugaz One and Source Code Pro) are also
+distributed with this project, each with their own license. See the individual
+directories in `resources/src/fonts/` for details.
 
 Making it work
 --------------

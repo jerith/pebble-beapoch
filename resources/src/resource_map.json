@@ -4,15 +4,30 @@
     "media": [
         {
             "type": "font",
-            "defName": "FONT_ROBOTO_CONDENSED_19",
-            "file": "fonts/Roboto-Condensed.ttf"
+            "file": "fonts/Droid_Sans/DroidSans.ttf",
+            "characterRegex": "[0-9-]",
+            "defName": "FONT_ISO_DATE_23"
         },
 
         {
             "type": "font",
-            "characterRegex": "[:0-9]",
-            "defName": "FONT_ROBOTO_BOLD_SUBSET_32",
-            "file": "fonts/Roboto-Bold.ttf"
+            "file": "fonts/Droid_Sans/DroidSans.ttf",
+            "characterRegex": "[0-9:]",
+            "defName": "FONT_ISO_TIME_31"
+        },
+
+        {
+            "type": "font",
+            "file": "fonts/Source_Code_Pro/SourceCodePro-Regular.ttf",
+            "characterRegex": "[0-9]",
+            "defName": "FONT_UNIX_TIME_23"
+        },
+
+        {
+            "type": "font",
+            "file": "fonts/Fugaz_One/FugazOne-Regular.ttf",
+            "characterRegex": "[0-9@]",
+            "defName": "FONT_SWATCH_BEATS_24"
         }
     ]
 }
