@@ -2,6 +2,7 @@
 #include "pebble_app.h"
 #include "pebble_fonts.h"
 
+#include "slider.h"
 
 #define MY_UUID { 0xD8, 0xD3, 0x12, 0xA8, 0xDC, 0xA7, 0x41, 0x1A, 0xBC, 0xC8, 0x8B, 0x3D, 0x2C, 0xAE, 0xE0, 0xD3 }
 PBL_APP_INFO(MY_UUID,
@@ -18,6 +19,7 @@ PBL_APP_INFO(MY_UUID,
 Window window;
 
 Layer background_layer;
+SliderLayer slider_wday_layer;
 TextLayer text_date_layer;
 TextLayer text_time_layer;
 TextLayer text_unix_layer;
@@ -49,18 +51,23 @@ TextLayer text_beat_layer;
 
 // Some layout constants so we can tweak things more easily.
 
-#define ISO_TOP 46
+#define ISO_TOP 40
 #define ISO_HPADDING 4
+#define ISO_WDAY_HEIGHT 12
 #define ISO_DATE_HEIGHT 26
-#define ISO_TIME_HEIGHT 38
+#define ISO_TIME_HEIGHT 36
 #define ISO_BORDER_PADDING 12
 
 #define ISO_WIDTH (144 - 2 * ISO_HPADDING)
-#define ISO_HEIGHT (ISO_DATE_HEIGHT + ISO_TIME_HEIGHT + 2 * (ISO_HPADDING + 2))
+#define ISO_HEIGHT (ISO_WDAY_HEIGHT + ISO_DATE_HEIGHT + ISO_TIME_HEIGHT + 2 * (ISO_HPADDING + 2))
 #define ISO_TEXT_WIDTH (ISO_WIDTH - 2 * (ISO_HPADDING + 2))
 #define ISO_RECT GRect(ISO_HPADDING, ISO_TOP, ISO_WIDTH, ISO_HEIGHT)
-#define ISO_DATE_RECT GRect(ISO_HPADDING + ISO_HPADDING + 2, ISO_TOP + ISO_HPADDING + 2, ISO_TEXT_WIDTH, ISO_DATE_HEIGHT)
-#define ISO_TIME_RECT GRect(ISO_HPADDING + ISO_HPADDING + 2, ISO_TOP + ISO_HPADDING + 2 + ISO_DATE_HEIGHT, ISO_TEXT_WIDTH, ISO_TIME_HEIGHT)
+#define ISO_WDAY_TOP (ISO_TOP + ISO_HPADDING + 2)
+#define ISO_DATE_TOP (ISO_WDAY_TOP + ISO_WDAY_HEIGHT)
+#define ISO_TIME_TOP (ISO_DATE_TOP + ISO_DATE_HEIGHT)
+#define ISO_WDAY_RECT GRect(ISO_HPADDING + ISO_HPADDING + 2, ISO_WDAY_TOP, ISO_TEXT_WIDTH, ISO_WDAY_HEIGHT)
+#define ISO_DATE_RECT GRect(ISO_HPADDING + ISO_HPADDING + 2, ISO_DATE_TOP, ISO_TEXT_WIDTH, ISO_DATE_HEIGHT)
+#define ISO_TIME_RECT GRect(ISO_HPADDING + ISO_HPADDING + 2, ISO_TIME_TOP, ISO_TEXT_WIDTH, ISO_TIME_HEIGHT)
 
 
 #define UNIX_TOP 0
@@ -120,11 +127,18 @@ void init_display() {
     layer_init(&background_layer, window.layer.frame);
     background_layer.update_proc = &update_background_callback;
     layer_add_child(&window.layer, &background_layer);
+
+    slider_layer_init(&slider_wday_layer, ISO_WDAY_RECT, 7);
+    slider_layer_set_line_color(&slider_wday_layer, GColorClear);
+    slider_layer_set_tick_color(&slider_wday_layer, TEXT_FG_COLOR);
+    slider_layer_set_indicator_color(&slider_wday_layer, TEXT_FG_COLOR);
+    slider_wday_layer.tick_height = 2;
+    slider_wday_layer.indicator_radius = 3;
+    layer_add_child(&window.layer, &slider_wday_layer.layer);
+
     init_text_layer(&text_date_layer, ISO_DATE_RECT, GTextAlignmentCenter, RESOURCE_ID_FONT_ISO_DATE_23);
     init_text_layer(&text_time_layer, ISO_TIME_RECT, GTextAlignmentCenter, RESOURCE_ID_FONT_ISO_TIME_31);
-
     init_text_layer(&text_unix_layer, UNIX_RECT, GTextAlignmentCenter, RESOURCE_ID_FONT_UNIX_TIME_23);
-
     init_text_layer(&text_beat_layer, BEAT_RECT, GTextAlignmentLeft, RESOURCE_ID_FONT_SWATCH_BEATS_24);
 }
 
@@ -177,30 +191,33 @@ void display_time(PblTm *tick_time) {
 
     time_t unix_seconds;
 
-    // Calculate standard time.
+    // Weekday.
 
-    // We ignore `clock_is_24h_style()' because ISO-8601 is always 24h.
+    slider_layer_set_position(&slider_wday_layer, (uint8_t)tick_time->tm_wday);
+
+    // Date.
+
     string_format_time(date_text, sizeof(date_text), "%Y-%m-%d", tick_time);
+    text_layer_set_text(&text_date_layer, date_text);
+
+    // Time.
+
     string_format_time(time_text, sizeof(time_text), "%H:%M:%S", tick_time);
-
-    if (!clock_is_24h_style() && (time_text[0] == '0')) {
-        time_text[0] = ' ';
+    if (time_text[0] == ' ') {
+        time_text[0] = '0';
     }
+    text_layer_set_text(&text_time_layer, time_text);
 
-    // Calculate unix time.
+    // Unix timestamp.
 
     unix_seconds = calc_unix_seconds(tick_time) - UTC_OFFSET;
     strcpy(unix_text, int_to_str(unix_seconds));
+    text_layer_set_text(&text_unix_layer, unix_text);
 
-    // Calculate .beats.
+    // Swatch .beats.
 
     beat_text[1] = '\0';
     strcat(beat_text, int_to_str(calc_swatch_beats(unix_seconds)));
-
-    // Update display.
-    text_layer_set_text(&text_date_layer, date_text);
-    text_layer_set_text(&text_time_layer, time_text);
-    text_layer_set_text(&text_unix_layer, unix_text);
     text_layer_set_text(&text_beat_layer, beat_text);
 }
 
