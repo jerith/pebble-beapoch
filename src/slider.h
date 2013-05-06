@@ -21,17 +21,21 @@ typedef struct SliderLayer {
 void slider_layer_update_proc(SliderLayer *slider_layer, GContext *gctx) {
     uint8_t x, y, w;
 
-    graphics_context_set_stroke_color(gctx, slider_layer->line_color);
-    graphics_draw_line(gctx, slider_layer->left, slider_layer->right);
+    if (slider_layer->line_color != GColorClear) {
+        graphics_context_set_stroke_color(gctx, slider_layer->line_color);
+        graphics_draw_line(gctx, slider_layer->left, slider_layer->right);
+    }
 
     graphics_context_set_stroke_color(gctx, slider_layer->tick_color);
     y = slider_layer->left.y;
     w = slider_layer->right.x - slider_layer->left.x;
     for (int i = 0; i < slider_layer->ticks; ++i) {
         x = slider_layer->left.x + (w * i + w / 2) / (slider_layer->ticks);
-        graphics_draw_line(gctx, GPoint(x, y - slider_layer->tick_height), GPoint(x, y + slider_layer->tick_height));
+        if (slider_layer->tick_color != GColorClear) {
+            graphics_draw_line(gctx, GPoint(x, y - slider_layer->tick_height), GPoint(x, y + slider_layer->tick_height));
+        }
 
-        if (i == slider_layer->position) {
+        if ((i == slider_layer->position) && (slider_layer->indicator_color != GColorClear)) {
             graphics_context_set_stroke_color(gctx, slider_layer->indicator_color);
             graphics_context_set_fill_color(gctx, slider_layer->indicator_color);
             graphics_fill_circle(gctx, GPoint(x, y), slider_layer->indicator_radius);
