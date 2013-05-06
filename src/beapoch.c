@@ -53,7 +53,7 @@ TextLayer text_beat_layer;
 
 #define ISO_TOP 40
 #define ISO_HPADDING 4
-#define ISO_WDAY_HEIGHT 12
+#define ISO_WDAY_HEIGHT 10
 #define ISO_DATE_HEIGHT 26
 #define ISO_TIME_HEIGHT 36
 #define ISO_BORDER_PADDING 12
@@ -132,7 +132,7 @@ void init_display() {
     slider_layer_set_line_color(&slider_wday_layer, GColorClear);
     slider_layer_set_tick_color(&slider_wday_layer, TEXT_FG_COLOR);
     slider_layer_set_indicator_color(&slider_wday_layer, TEXT_FG_COLOR);
-    slider_wday_layer.tick_height = 2;
+    slider_wday_layer.tick_height = 1;
     slider_wday_layer.indicator_radius = 3;
     layer_add_child(&window.layer, &slider_wday_layer.layer);
 
