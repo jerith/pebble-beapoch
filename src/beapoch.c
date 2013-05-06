@@ -53,7 +53,7 @@ TextLayer text_beat_layer;
 #define ISO_HPADDING 4
 #define ISO_DATE_HEIGHT 26
 #define ISO_TIME_HEIGHT 36
-#define ISO_BORDER_PADDING 6
+#define ISO_BORDER_PADDING 8
 
 #define ISO_WIDTH (144 - 2 * ISO_HPADDING)
 #define ISO_HEIGHT (ISO_DATE_HEIGHT + ISO_TIME_HEIGHT + 2 * ISO_BORDER_PADDING)
@@ -73,7 +73,7 @@ TextLayer text_beat_layer;
 
 #define BEAT_TOP 136
 #define BEAT_LEFT 70
-#define BEAT_HEIGHT 38
+#define BEAT_HEIGHT 32
 
 #define BEAT_WIDTH (144 - BEAT_LEFT)
 #define BEAT_RECT GRect(BEAT_LEFT, BEAT_TOP, BEAT_WIDTH, BEAT_HEIGHT)
