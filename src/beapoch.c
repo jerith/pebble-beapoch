@@ -53,7 +53,7 @@ TextLayer text_beat_layer;
 #define ISO_HPADDING 4
 #define ISO_DATE_HEIGHT 26
 #define ISO_TIME_HEIGHT 38
-#define ISO_BORDER_PADDING 11
+#define ISO_BORDER_PADDING 12
 
 #define ISO_WIDTH (144 - 2 * ISO_HPADDING)
 #define ISO_HEIGHT (ISO_DATE_HEIGHT + ISO_TIME_HEIGHT + 2 * (ISO_HPADDING + 2))
@@ -96,11 +96,13 @@ void init_text_layer(TextLayer *layer, GRect rect, GTextAlignment align, uint32_
 
 
 void draw_border_box(GContext *gctx, GRect rect, uint8_t corner_radius) {
+    GRect inner_rect = GRect(rect.origin.x + 1, rect.origin.y + 1, rect.size.w - 2, rect.size.h - 2);
+    // Double thick border
     graphics_draw_round_rect(gctx, rect, corner_radius);
-    /* graphics_draw_line(gctx, GPoint(RLEFT(rect) + corner_radius, RTOP(rect)), GPoint(RRIGHT(rect) - corner_radius, RTOP(rect))); */
-    /* graphics_draw_line(gctx, GPoint(RLEFT(rect) + corner_radius, RBOTTOM(rect)), GPoint(RRIGHT(rect) - corner_radius, RBOTTOM(rect))); */
-    /* graphics_draw_line(gctx, GPoint(RLEFT(rect), RTOP(rect) + corner_radius), GPoint(RLEFT(rect), RBOTTOM(rect) - corner_radius)); */
-    /* graphics_draw_line(gctx, GPoint(RRIGHT(rect), RTOP(rect) + corner_radius), GPoint(RRIGHT(rect), RBOTTOM(rect) - corner_radius)); */
+    graphics_draw_round_rect(gctx, inner_rect, corner_radius);
+    // Draw again with different corner_radius to fill in missing pixels
+    graphics_draw_round_rect(gctx, rect, corner_radius + 1);
+    graphics_draw_round_rect(gctx, inner_rect, corner_radius - 1);
 }
 
 
