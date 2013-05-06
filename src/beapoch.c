@@ -95,8 +95,9 @@ void init_text_layer(TextLayer *layer, GRect rect, GTextAlignment align, uint32_
 }
 
 
-void draw_border_box(GContext *gctx, GRect rect, uint8_t corner_radius) {
-    GRect inner_rect = GRect(rect.origin.x + 1, rect.origin.y + 1, rect.size.w - 2, rect.size.h - 2);
+void draw_border_box(GContext *gctx, GRect rect, int corner_radius) {
+    GRect inner_rect;
+    inner_rect = GRect(rect.origin.x + 1, rect.origin.y + 1, rect.size.w - 2, rect.size.h - 2);
     // Double thick border
     graphics_draw_round_rect(gctx, rect, corner_radius);
     graphics_draw_round_rect(gctx, inner_rect, corner_radius);
