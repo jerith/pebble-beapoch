@@ -203,13 +203,6 @@ void display_time(PblTm *tick_time) {
     text_layer_set_text(&text_beat_layer, beat_text);
 }
 
-#define tb_top 4
-#define tb_bottom 72
-#define tb_left 6
-#define tb_right (144 - tb_left)
-#define tb_radius 6
-
-
 
 void handle_init(AppContextRef ctx) {
     PblTm init_time;
