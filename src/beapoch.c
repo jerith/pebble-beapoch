@@ -193,7 +193,8 @@ void display_time(PblTm *tick_time) {
 
     // Weekday.
 
-    slider_layer_set_position(&slider_wday_layer, (uint8_t)tick_time->tm_wday);
+    // ISO says the day starts on Monday, Pebble says it starts on Sunday.
+    slider_layer_set_position(&slider_wday_layer, (uint8_t)(tick_time->tm_wday + 6) % 7);
 
     // Date.
 
