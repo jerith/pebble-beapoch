@@ -6,6 +6,11 @@ Pebble watch face that displays Unix time and Swatch .beats.
 This project basically exists because I wanted to play with my shiny new
 Pebble.
 
+Build status: ![status](https://cloudpebble.net/ide/project/1232/status.png)
+
+Link to latest successfully built app bundle as soon as the spectacularly
+awesome [CloudPebble](http://cloudpebble.net) supports it.
+
 License
 -------
 
