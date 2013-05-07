@@ -3,8 +3,7 @@ pebble-beapoch
 
 Pebble watch face that displays Unix time and Swatch .beats.
 
-This project basically exists because I wanted to play with my shiny new
-Pebble.
+![screenshot](screenshots/beapoch-2013-05-07-22.png)
 
 Build status: ![status](https://cloudpebble.net/ide/project/1232/status.png)
 
