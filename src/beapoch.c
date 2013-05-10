@@ -1,6 +1,7 @@
 #include "pebble_os.h"
 #include "pebble_app.h"
 #include "pebble_fonts.h"
+#include "ctype.h"
 
 #include "slider.h"
 
@@ -13,8 +14,12 @@ PBL_APP_INFO(MY_UUID,
 
 
 // TODO: Fix this if and when we get access to timezone data.
-#define UTC_OFFSET -7
-#define HOUR (60 * 60)
+#define UTC_OFFSET "-07:00"
+static int offsetSeconds = 0;
+
+// Sorry for this. -GC
+#define ISDIGIT(X) ((int)X-48)
+
 
 
 Window window;
@@ -91,6 +96,24 @@ TextLayer text_beat_layer;
 #define RBOTTOM(rect) (rect.origin.y + rect.size.h)
 #define RLEFT(rect) (rect.origin.x)
 #define RRIGHT(rect) (rect.origin.x + rect.size.w)
+
+void set_timezone_offset() {
+	unsigned char tz_offset[] = UTC_OFFSET;
+
+	int hour = 0;
+	int min = 0;
+	
+	hour = (ISDIGIT(tz_offset[1]) * 10) + ISDIGIT(tz_offset[2]);
+	min = (ISDIGIT(tz_offset[4]) * 10) + ISDIGIT(tz_offset[5]);
+
+	if(tz_offset[0] == '+') {
+		offsetSeconds = hour*60*60 + min*60;
+	} else {
+		offsetSeconds = -1 * (hour*60*60 + min*60);
+	}
+	
+}
+
 
 
 void init_text_layer(TextLayer *layer, GRect rect, GTextAlignment align, uint32_t font_res_id) {
@@ -212,7 +235,7 @@ void display_time(PblTm *tick_time) {
 
     // Unix timestamp.
 
-    unix_seconds = calc_unix_seconds(tick_time) - ( UTC_OFFSET * HOUR );
+	unix_seconds = calc_unix_seconds(tick_time) - offsetSeconds;
     strcpy(unix_text, int_to_str(unix_seconds));
     text_layer_set_text(&text_unix_layer, unix_text);
 
@@ -234,6 +257,7 @@ void handle_init(AppContextRef ctx) {
     window_set_background_color(&window, WINDOW_COLOR);
 
     resource_init_current_app(&APP_RESOURCES);
+	set_timezone_offset();
     init_display();
 
     get_time(&init_time);
