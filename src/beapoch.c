@@ -13,11 +13,11 @@ PBL_APP_INFO(MY_UUID,
 
 
 // TODO: Fix this if and when we get access to timezone data.
-#define UTC_OFFSET "-07:00"
+#define UTC_OFFSET "+0200"
 static int offsetSeconds = 0;
 
 // Sorry for this. -GC
-#define ISDIGIT(X) ((int)X-48)
+#define ISDIGIT(X) ((int)X-'0')
 
 
 
@@ -97,20 +97,19 @@ TextLayer text_beat_layer;
 #define RRIGHT(rect) (rect.origin.x + rect.size.w)
 
 void set_timezone_offset() {
-	unsigned char tz_offset[] = UTC_OFFSET;
+    unsigned char tz_offset[] = UTC_OFFSET;
 
-	int hour = 0;
-	int min = 0;
+    int hour = 0;
+    int min = 0;
 	
-	hour = (ISDIGIT(tz_offset[1]) * 10) + ISDIGIT(tz_offset[2]);
-	min = (ISDIGIT(tz_offset[4]) * 10) + ISDIGIT(tz_offset[5]);
+    hour = (ISDIGIT(tz_offset[1]) * 10) + ISDIGIT(tz_offset[2]);
+    min = (ISDIGIT(tz_offset[3]) * 10) + ISDIGIT(tz_offset[4]);
 
-	if(tz_offset[0] == '+') {
-		offsetSeconds = hour*60*60 + min*60;
-	} else {
-		offsetSeconds = -1 * (hour*60*60 + min*60);
-	}
-	
+    if(tz_offset[0] == '+') {
+        offsetSeconds = hour*60*60 + min*60;
+    } else {
+        offsetSeconds = -1 * (hour*60*60 + min*60);
+    }
 }
 
 
@@ -234,7 +233,7 @@ void display_time(PblTm *tick_time) {
 
     // Unix timestamp.
 
-	unix_seconds = calc_unix_seconds(tick_time) - offsetSeconds;
+    unix_seconds = calc_unix_seconds(tick_time) - offsetSeconds;
     strcpy(unix_text, int_to_str(unix_seconds));
     text_layer_set_text(&text_unix_layer, unix_text);
 
@@ -256,7 +255,7 @@ void handle_init(AppContextRef ctx) {
     window_set_background_color(&window, WINDOW_COLOR);
 
     resource_init_current_app(&APP_RESOURCES);
-	set_timezone_offset();
+    set_timezone_offset();
     init_display();
 
     get_time(&init_time);
