@@ -13,7 +13,8 @@ PBL_APP_INFO(MY_UUID,
 
 
 // TODO: Fix this if and when we get access to timezone data.
-#define UTC_OFFSET (60 * 60 * 2)
+#define UTC_OFFSET -7
+#define HOUR (60 * 60)
 
 
 Window window;
@@ -211,7 +212,7 @@ void display_time(PblTm *tick_time) {
 
     // Unix timestamp.
 
-    unix_seconds = calc_unix_seconds(tick_time) - UTC_OFFSET;
+    unix_seconds = calc_unix_seconds(tick_time) - ( UTC_OFFSET * HOUR );
     strcpy(unix_text, int_to_str(unix_seconds));
     text_layer_set_text(&text_unix_layer, unix_text);
 
