@@ -15,11 +15,7 @@ PBL_APP_INFO(MY_UUID,
 // TODO: Fix this if and when we get access to timezone data.
 #define UTC_OFFSET "+0200"
 static int offsetSeconds = 0;
-
-// Sorry for this. -GC
-#define ISDIGIT(X) ((int)X-'0')
-
-
+#define INT_FROM_DIGIT(X) ((int)X - '0')
 
 Window window;
 
@@ -102,8 +98,8 @@ void set_timezone_offset() {
     int hour = 0;
     int min = 0;
 	
-    hour = (ISDIGIT(tz_offset[1]) * 10) + ISDIGIT(tz_offset[2]);
-    min = (ISDIGIT(tz_offset[3]) * 10) + ISDIGIT(tz_offset[4]);
+    hour = (INT_FROM_DIGIT(tz_offset[1]) * 10) + INT_FROM_DIGIT(tz_offset[2]);
+    min = (INT_FROM_DIGIT(tz_offset[3]) * 10) + INT_FROM_DIGIT(tz_offset[4]);
 
     if(tz_offset[0] == '+') {
         offsetSeconds = hour*60*60 + min*60;
@@ -111,7 +107,6 @@ void set_timezone_offset() {
         offsetSeconds = -1 * (hour*60*60 + min*60);
     }
 }
-
 
 
 void init_text_layer(TextLayer *layer, GRect rect, GTextAlignment align, uint32_t font_res_id) {
