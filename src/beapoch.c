@@ -149,8 +149,8 @@ void init_display() {
     slider_layer_set_line_color(&slider_wday_layer, GColorClear);
     slider_layer_set_tick_color(&slider_wday_layer, TEXT_FG_COLOR);
     slider_layer_set_indicator_color(&slider_wday_layer, TEXT_FG_COLOR);
-    slider_wday_layer.tick_height = 1;
-    slider_wday_layer.indicator_radius = 3;
+    slider_wday_layer.tick_height = 0;
+    slider_wday_layer.indicator_radius = 2;
     layer_add_child(&window.layer, &slider_wday_layer.layer);
 
     init_text_layer(&text_date_layer, ISO_DATE_RECT, GTextAlignmentCenter, RESOURCE_ID_FONT_ISO_DATE_23);

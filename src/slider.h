@@ -32,7 +32,7 @@ void slider_layer_update_proc(SliderLayer *slider_layer, GContext *gctx) {
     for (int i = 0; i < slider_layer->ticks; ++i) {
         x = slider_layer->left.x + (w * i + w / 2) / (slider_layer->ticks);
         if (slider_layer->tick_color != GColorClear) {
-            graphics_draw_line(gctx, GPoint(x, y - slider_layer->tick_height), GPoint(x, y + slider_layer->tick_height));
+            graphics_draw_line(gctx, GPoint(x, y - slider_layer->tick_height), GPoint(x, y + slider_layer->tick_height + 1));
         }
 
         if ((i == slider_layer->position) && (slider_layer->indicator_color != GColorClear)) {
