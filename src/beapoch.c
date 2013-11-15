@@ -139,23 +139,6 @@ void update_background_callback(Layer *layer, GContext *gctx) {
 }
 
 
-char *int_to_str(long num) {
-    // Maximum of then digits, because unix timestamp. Make sure to copy the
-    // text out of the returned buffer before calling this again.
-    static char text_num[] = "0123456789";
-
-    for (int i = 9; i >= 0; i--) {
-        text_num[i] = '0' + (num % 10);
-        num /= 10;
-        if (num == 0) {
-            // Return from the middle of our string.
-            return text_num + i;
-        }
-    }
-    return text_num;
-}
-
-
 time_t calc_unix_seconds(struct tm *tick_time) {
     // This uses a naive algorithm for calculating leap years and will
     // therefore fail in 2100.
@@ -208,13 +191,12 @@ void display_time(struct tm *tick_time) {
     // Unix timestamp.
 
     unix_seconds = calc_unix_seconds(tick_time) - utc_offset_seconds;
-    strcpy(unix_text, int_to_str(unix_seconds));
+    snprintf(unix_text, sizeof(unix_text), "%ld", unix_seconds);
     text_layer_set_text(text_unix_layer, unix_text);
 
     // Swatch .beats.
 
-    beat_text[1] = '\0';
-    strcat(beat_text, int_to_str(calc_swatch_beats(unix_seconds)));
+    snprintf(beat_text, sizeof(unix_text), "@%ld", calc_swatch_beats(unix_seconds));
     text_layer_set_text(text_beat_layer, beat_text);
 
     // Timezone offset.
