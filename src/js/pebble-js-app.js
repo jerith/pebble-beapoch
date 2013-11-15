@@ -1,9 +1,3 @@
-Pebble.addEventListener(
-    "ready", function(e) {
-        console.log("*** ready");
-    }
-);
-
 function getUTCOffset() {
     // This gives us our UTC offset in minutes, but negative.
     var tz_offset = (new Date()).getTimezoneOffset();
@@ -35,6 +29,15 @@ function getUTCOffset() {
     console.log(logstr + " offset_str='" + offset_str + "'");
     return offset_str;
 }
+
+Pebble.addEventListener(
+    "ready", function(e) {
+        console.log("*** ready");
+        // Always send the UTC offset on startup.
+        // The watch may have cached it, but we could be in a different timezone.
+        Pebble.sendAppMessage({"utc_offset": getUTCOffset()});
+    }
+);
 
 Pebble.addEventListener(
     "appmessage", function(e) {

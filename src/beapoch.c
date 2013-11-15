@@ -262,25 +262,27 @@ void out_failed_handler(DictionaryIterator *failed, AppMessageResult reason, voi
 }
 
 
-static void acquire_timezone(void) {
+static void get_stored_timezone(void) {
     char utc_offset_str[5];
 
-    if (persist_exists(BEAPOCH_KEY_UTC_OFFSET)) {
-        persist_read_string(BEAPOCH_KEY_UTC_OFFSET, utc_offset_str, sizeof(utc_offset_str));
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "Looked up UTC offset from local storage: %s", utc_offset_str);
-        set_timezone_offset(utc_offset_str);
-        if (request_timezone_tries_left > 0) {
-            request_timezone_tries_left = 0;
-        }
-    } else {
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "No UTC offset in local storage, asking the phone.");
-        request_timezone();
+    if (!persist_exists(BEAPOCH_KEY_UTC_OFFSET)) {
+        // We don't have it persisted, so give up.
+        return;
+    }
+    persist_read_string(BEAPOCH_KEY_UTC_OFFSET, utc_offset_str, sizeof(utc_offset_str));
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Looked up UTC offset from local storage: %s", utc_offset_str);
+    set_timezone_offset(utc_offset_str);
+
+    // We don't need to poll the phone for this, because we already have it.
+    if (request_timezone_tries_left > 0) {
+        request_timezone_tries_left = 0;
     }
 }
 
 
 static void handle_second_tick(struct tm *tick_time, TimeUnits units_changed) {
     if (request_timezone_tries_left) {
+        // If we don't already have a UTC offset, ask the phone for one.
         request_timezone();
     }
     display_time(tick_time);
@@ -309,10 +311,9 @@ static void window_load(Window *window) {
     text_beat_layer = init_text_layer(BEAT_RECT, GTextAlignmentLeft, RESOURCE_ID_FONT_SWATCH_BEATS_24);
     text_utco_layer = init_text_layer(UTCO_RECT, GTextAlignmentLeft, RESOURCE_ID_FONT_TZ_OFFSET_20);
 
+    get_stored_timezone();
     time_t now = time(NULL);
     display_time(localtime(&now));
-
-    acquire_timezone();
     tick_timer_service_subscribe(SECOND_UNIT, handle_second_tick);
 }
 
