@@ -18,18 +18,14 @@ function getUTCOffset() {
     // Now we have a positive offset, which is much nicer to work with.
     var offset_minutes = tz_offset % 60;
     var offset_hours = (tz_offset - offset_minutes) / 60;
+    var offset_number = (offset_hours * 100) + offset_minutes;
 
-    // Strings, with zero padding.
-    var offset_minutes_str = offset_minutes.toString();
-    if (offset_minutes_str.length == 1) {
-        offset_minutes_str = "0" + offset_minutes_str;
-    }
-    var offset_hours_str = offset_hours.toString();
-    if (offset_hours_str.length == 1) {
-        offset_hours_str = "0" + offset_hours_str;
+    // Make a string with zero padding.
+    var offset_str = offset_number.toString();
+    if (offset_str.length == 3) {
+        offset_str = "0" + offset_str;
     }
 
-    var offset_str = offset_hours_str + offset_minutes_str;
     if (is_negative) {
         offset_str = "-" + offset_str;
     } else {
