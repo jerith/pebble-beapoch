@@ -4,9 +4,18 @@
 
 
 // TODO: Fix this if and when we get access to timezone data.
-#define UTC_OFFSET "+0200"
-static int offsetSeconds = 0;
+#define DEFAULT_UTC_OFFSET "+0000"
+
+static char utc_offset_str[] = "+0000";
+static int utc_offset_seconds = 0;
+static int request_timezone_tries_left = 10;  // Try this many times before giving up.
 #define INT_FROM_DIGIT(X) ((int)X - '0')
+
+
+enum {
+  BEAPOCH_KEY_UTC_OFFSET = 0x0,
+};
+
 
 Window *window;
 
@@ -16,6 +25,7 @@ TextLayer *text_date_layer;
 TextLayer *text_time_layer;
 TextLayer *text_unix_layer;
 TextLayer *text_beat_layer;
+TextLayer *text_utco_layer;
 
 
 #define BACKGROUND_COLOR GColorBlack
@@ -78,24 +88,32 @@ TextLayer *text_beat_layer;
 #define BEAT_RECT GRect(BEAT_LEFT, BEAT_TOP, BEAT_WIDTH, BEAT_HEIGHT)
 
 
+#define UTCO_TOP 138
+#define UTCO_LEFT 4
+#define UTCO_HEIGHT 28
+
+#define UTCO_WIDTH (BEAT_LEFT - 2 * UTCO_LEFT)
+#define UTCO_RECT GRect(UTCO_LEFT, UTCO_TOP, UTCO_WIDTH, UTCO_HEIGHT)
+
+
 #define RTOP(rect) (rect.origin.y)
 #define RBOTTOM(rect) (rect.origin.y + rect.size.h)
 #define RLEFT(rect) (rect.origin.x)
 #define RRIGHT(rect) (rect.origin.x + rect.size.w)
 
-void set_timezone_offset() {
-    unsigned char tz_offset[] = UTC_OFFSET;
 
+void set_timezone_offset(char tz_offset[]) {
     int hour = 0;
     int min = 0;
+
+    strncpy(utc_offset_str, tz_offset, sizeof(utc_offset_str));
 
     hour = (INT_FROM_DIGIT(tz_offset[1]) * 10) + INT_FROM_DIGIT(tz_offset[2]);
     min = (INT_FROM_DIGIT(tz_offset[3]) * 10) + INT_FROM_DIGIT(tz_offset[4]);
 
-    if(tz_offset[0] == '+') {
-        offsetSeconds = hour*60*60 + min*60;
-    } else {
-        offsetSeconds = -1 * (hour*60*60 + min*60);
+    utc_offset_seconds = hour*60*60 + min*60;
+    if(tz_offset[0] != '+') {
+        utc_offset_seconds = -1 * utc_offset_seconds;
     }
 }
 
@@ -189,7 +207,7 @@ void display_time(struct tm *tick_time) {
 
     // Unix timestamp.
 
-    unix_seconds = calc_unix_seconds(tick_time) - offsetSeconds;
+    unix_seconds = calc_unix_seconds(tick_time) - utc_offset_seconds;
     strcpy(unix_text, int_to_str(unix_seconds));
     text_layer_set_text(text_unix_layer, unix_text);
 
@@ -198,6 +216,10 @@ void display_time(struct tm *tick_time) {
     beat_text[1] = '\0';
     strcat(beat_text, int_to_str(calc_swatch_beats(unix_seconds)));
     text_layer_set_text(text_beat_layer, beat_text);
+
+    // Timezone offset.
+
+    text_layer_set_text(text_utco_layer, utc_offset_str);
 }
 
 
@@ -209,6 +231,36 @@ TextLayer *init_text_layer(GRect rect, GTextAlignment align, uint32_t font_res_i
     text_layer_set_font(layer, fonts_load_custom_font(resource_get_handle(font_res_id)));
     layer_add_child(window_get_root_layer(window), text_layer_get_layer(layer));
     return layer;
+}
+
+
+static void request_timezone(void) {
+    Tuplet utc_offset_tuple = TupletInteger(BEAPOCH_KEY_UTC_OFFSET, 1);
+
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Requesting timezone, tries left: %d", request_timezone_tries_left);
+    if (request_timezone_tries_left > 0) {
+        request_timezone_tries_left -= 1;
+    }
+
+    DictionaryIterator *iter;
+    app_message_outbox_begin(&iter);
+
+    if (iter == NULL) {
+        return;
+    }
+
+    dict_write_tuplet(iter, &utc_offset_tuple);
+    dict_write_end(iter);
+
+    app_message_outbox_send();
+}
+
+
+static void handle_second_tick(struct tm *tick_time, TimeUnits units_changed) {
+    if (request_timezone_tries_left) {
+        request_timezone();
+    }
+    display_time(tick_time);
 }
 
 
@@ -232,10 +284,19 @@ static void window_load(Window *window) {
     text_time_layer = init_text_layer(ISO_TIME_RECT, GTextAlignmentCenter, RESOURCE_ID_FONT_ISO_TIME_31);
     text_unix_layer = init_text_layer(UNIX_RECT, GTextAlignmentCenter, RESOURCE_ID_FONT_UNIX_TIME_23);
     text_beat_layer = init_text_layer(BEAT_RECT, GTextAlignmentLeft, RESOURCE_ID_FONT_SWATCH_BEATS_24);
+    text_utco_layer = init_text_layer(UTCO_RECT, GTextAlignmentLeft, RESOURCE_ID_FONT_TZ_OFFSET_20);
+
+    time_t now = time(NULL);
+    display_time(localtime(&now));
+
+    request_timezone();
+    tick_timer_service_subscribe(SECOND_UNIT, handle_second_tick);
 }
 
 
 static void window_unload(Window *window) {
+    tick_timer_service_unsubscribe();
+    text_layer_destroy(text_utco_layer);
     text_layer_destroy(text_beat_layer);
     text_layer_destroy(text_unix_layer);
     text_layer_destroy(text_time_layer);
@@ -245,25 +306,44 @@ static void window_unload(Window *window) {
 }
 
 
-static void handle_second_tick(struct tm *tick_time, TimeUnits units_changed) {
-    display_time(tick_time);
+void in_received_handler(DictionaryIterator *received, void *context) {
+    Tuple *utc_offset_tuple = dict_find(received, BEAPOCH_KEY_UTC_OFFSET);
+
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Received timezone: %s", utc_offset_tuple->value->cstring);
+
+    set_timezone_offset(utc_offset_tuple->value->cstring);
+    if (request_timezone_tries_left > 0) {
+        request_timezone_tries_left = 0;
+    }
+}
+
+
+void in_dropped_handler(AppMessageResult reason, void *context) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "App Message Dropped! (%u)", reason);
+}
+
+
+void out_failed_handler(DictionaryIterator *failed, AppMessageResult reason, void *context) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "App Message Send Failed! (%u)", reason);
 }
 
 
 static void init(void) {
-    set_timezone_offset();
+    set_timezone_offset(DEFAULT_UTC_OFFSET);
 
+    // AppMessage setup.
+    app_message_register_inbox_received(in_received_handler);
+    app_message_register_inbox_dropped(in_dropped_handler);
+    app_message_register_outbox_failed(out_failed_handler);
+    app_message_open(64, 64);
+
+    // Window setup.
     window = window_create();
     window_set_window_handlers(window, (WindowHandlers) {
         .load = window_load,
         .unload = window_unload,
     });
     window_stack_push(window, true /* Animated */);
-
-    time_t now = time(NULL);
-    display_time(localtime(&now));
-
-    tick_timer_service_subscribe(SECOND_UNIT, handle_second_tick);
 }
 
 

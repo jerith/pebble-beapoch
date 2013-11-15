@@ -8,7 +8,9 @@
   "watchapp": {
     "watchface": true
   },
-  "appKeys": {},
+  "appKeys": {
+    "utc_offset": 0
+  },
   "resources": {
     "media": [
       {
@@ -27,6 +29,12 @@
         "characterRegex": "[0-9]",
         "type": "font",
         "name": "FONT_UNIX_TIME_23",
+        "file": "fonts/Source_Code_Pro/SourceCodePro-Regular.ttf"
+      },
+      {
+        "characterRegex": "[0-9+-]",
+        "type": "font",
+        "name": "FONT_TZ_OFFSET_20",
         "file": "fonts/Source_Code_Pro/SourceCodePro-Regular.ttf"
       },
       {
