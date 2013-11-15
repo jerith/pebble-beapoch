@@ -1,15 +1,6 @@
-#include "pebble_os.h"
-#include "pebble_app.h"
-#include "pebble_fonts.h"
+#include <pebble.h>
 
 #include "slider.h"
-
-#define MY_UUID { 0xD8, 0xD3, 0x12, 0xA8, 0xDC, 0xA7, 0x41, 0x1A, 0xBC, 0xC8, 0x8B, 0x3D, 0x2C, 0xAE, 0xE0, 0xD3 }
-PBL_APP_INFO(MY_UUID,
-             "Beapoch", "jerith",
-             1, 0, /* App version */
-             DEFAULT_MENU_ICON,
-             APP_INFO_WATCH_FACE);
 
 
 // TODO: Fix this if and when we get access to timezone data.
@@ -17,14 +8,14 @@ PBL_APP_INFO(MY_UUID,
 static int offsetSeconds = 0;
 #define INT_FROM_DIGIT(X) ((int)X - '0')
 
-Window window;
+Window *window;
 
-Layer background_layer;
-SliderLayer slider_wday_layer;
-TextLayer text_date_layer;
-TextLayer text_time_layer;
-TextLayer text_unix_layer;
-TextLayer text_beat_layer;
+Layer *background_layer;
+SliderLayer *slider_wday_layer;
+TextLayer *text_date_layer;
+TextLayer *text_time_layer;
+TextLayer *text_unix_layer;
+TextLayer *text_beat_layer;
 
 
 #define BACKGROUND_COLOR GColorBlack
@@ -97,7 +88,7 @@ void set_timezone_offset() {
 
     int hour = 0;
     int min = 0;
-	
+
     hour = (INT_FROM_DIGIT(tz_offset[1]) * 10) + INT_FROM_DIGIT(tz_offset[2]);
     min = (INT_FROM_DIGIT(tz_offset[3]) * 10) + INT_FROM_DIGIT(tz_offset[4]);
 
@@ -106,16 +97,6 @@ void set_timezone_offset() {
     } else {
         offsetSeconds = -1 * (hour*60*60 + min*60);
     }
-}
-
-
-void init_text_layer(TextLayer *layer, GRect rect, GTextAlignment align, uint32_t font_res_id) {
-    text_layer_init(layer, rect);
-    text_layer_set_text_color(layer, TEXT_FG_COLOR);
-    text_layer_set_background_color(layer, TEXT_BG_COLOR);
-    text_layer_set_text_alignment(layer, align);
-    text_layer_set_font(layer, fonts_load_custom_font(resource_get_handle(font_res_id)));
-    layer_add_child(&window.layer, &layer->layer);
 }
 
 
@@ -140,26 +121,6 @@ void update_background_callback(Layer *layer, GContext *gctx) {
 }
 
 
-void init_display() {
-    layer_init(&background_layer, window.layer.frame);
-    background_layer.update_proc = &update_background_callback;
-    layer_add_child(&window.layer, &background_layer);
-
-    slider_layer_init(&slider_wday_layer, ISO_WDAY_RECT, 7);
-    slider_layer_set_line_color(&slider_wday_layer, GColorClear);
-    slider_layer_set_tick_color(&slider_wday_layer, TEXT_FG_COLOR);
-    slider_layer_set_indicator_color(&slider_wday_layer, TEXT_FG_COLOR);
-    slider_wday_layer.tick_height = 0;
-    slider_wday_layer.indicator_radius = 2;
-    layer_add_child(&window.layer, &slider_wday_layer.layer);
-
-    init_text_layer(&text_date_layer, ISO_DATE_RECT, GTextAlignmentCenter, RESOURCE_ID_FONT_ISO_DATE_23);
-    init_text_layer(&text_time_layer, ISO_TIME_RECT, GTextAlignmentCenter, RESOURCE_ID_FONT_ISO_TIME_31);
-    init_text_layer(&text_unix_layer, UNIX_RECT, GTextAlignmentCenter, RESOURCE_ID_FONT_UNIX_TIME_23);
-    init_text_layer(&text_beat_layer, BEAT_RECT, GTextAlignmentLeft, RESOURCE_ID_FONT_SWATCH_BEATS_24);
-}
-
-
 char *int_to_str(long num) {
     // Maximum of then digits, because unix timestamp. Make sure to copy the
     // text out of the returned buffer before calling this again.
@@ -177,7 +138,7 @@ char *int_to_str(long num) {
 }
 
 
-time_t calc_unix_seconds(PblTm *tick_time) {
+time_t calc_unix_seconds(struct tm *tick_time) {
     // This uses a naive algorithm for calculating leap years and will
     // therefore fail in 2100.
     int years_since_epoch;
@@ -199,7 +160,7 @@ time_t calc_swatch_beats(time_t unix_seconds) {
 }
 
 
-void display_time(PblTm *tick_time) {
+void display_time(struct tm *tick_time) {
     // Static, because we pass them to the system.
     static char date_text[] = "9999-99-99";
     static char time_text[] = "99:99:99";
@@ -211,67 +172,111 @@ void display_time(PblTm *tick_time) {
     // Weekday.
 
     // ISO says the day starts on Monday, Pebble says it starts on Sunday.
-    slider_layer_set_position(&slider_wday_layer, (uint8_t)(tick_time->tm_wday + 6) % 7);
+    slider_layer_set_position(slider_wday_layer, (uint8_t)(tick_time->tm_wday + 6) % 7);
 
     // Date.
 
-    string_format_time(date_text, sizeof(date_text), "%Y-%m-%d", tick_time);
-    text_layer_set_text(&text_date_layer, date_text);
+    strftime(date_text, sizeof(date_text), "%Y-%m-%d", tick_time);
+    text_layer_set_text(text_date_layer, date_text);
 
     // Time.
 
-    string_format_time(time_text, sizeof(time_text), "%H:%M:%S", tick_time);
+    strftime(time_text, sizeof(time_text), "%H:%M:%S", tick_time);
     if (time_text[0] == ' ') {
         time_text[0] = '0';
     }
-    text_layer_set_text(&text_time_layer, time_text);
+    text_layer_set_text(text_time_layer, time_text);
 
     // Unix timestamp.
 
     unix_seconds = calc_unix_seconds(tick_time) - offsetSeconds;
     strcpy(unix_text, int_to_str(unix_seconds));
-    text_layer_set_text(&text_unix_layer, unix_text);
+    text_layer_set_text(text_unix_layer, unix_text);
 
     // Swatch .beats.
 
     beat_text[1] = '\0';
     strcat(beat_text, int_to_str(calc_swatch_beats(unix_seconds)));
-    text_layer_set_text(&text_beat_layer, beat_text);
+    text_layer_set_text(text_beat_layer, beat_text);
 }
 
 
-void handle_init(AppContextRef ctx) {
-    PblTm init_time;
+TextLayer *init_text_layer(GRect rect, GTextAlignment align, uint32_t font_res_id) {
+    TextLayer *layer = text_layer_create(rect);
+    text_layer_set_text_color(layer, TEXT_FG_COLOR);
+    text_layer_set_background_color(layer, TEXT_BG_COLOR);
+    text_layer_set_text_alignment(layer, align);
+    text_layer_set_font(layer, fonts_load_custom_font(resource_get_handle(font_res_id)));
+    layer_add_child(window_get_root_layer(window), text_layer_get_layer(layer));
+    return layer;
+}
 
-    (void) ctx;
 
-    window_init(&window, "Beapoch");
-    window_stack_push(&window, true /* Animated */);
-    window_set_background_color(&window, WINDOW_COLOR);
+static void window_load(Window *window) {
+    Layer *window_layer = window_get_root_layer(window);
 
-    resource_init_current_app(&APP_RESOURCES);
+    window_set_background_color(window, WINDOW_COLOR);
+    background_layer = layer_create(layer_get_bounds(window_layer));
+    layer_set_update_proc(background_layer, &update_background_callback);
+    layer_add_child(window_layer, background_layer);
+
+    slider_wday_layer = slider_layer_create(ISO_WDAY_RECT, 7);
+    slider_layer_set_line_color(slider_wday_layer, GColorClear);
+    slider_layer_set_tick_color(slider_wday_layer, TEXT_FG_COLOR);
+    slider_layer_set_indicator_color(slider_wday_layer, TEXT_FG_COLOR);
+    slider_layer_set_tick_height(slider_wday_layer, 0);
+    slider_layer_set_indicator_radius(slider_wday_layer, 2);
+    layer_add_child(window_layer, slider_wday_layer);
+
+    text_date_layer = init_text_layer(ISO_DATE_RECT, GTextAlignmentCenter, RESOURCE_ID_FONT_ISO_DATE_23);
+    text_time_layer = init_text_layer(ISO_TIME_RECT, GTextAlignmentCenter, RESOURCE_ID_FONT_ISO_TIME_31);
+    text_unix_layer = init_text_layer(UNIX_RECT, GTextAlignmentCenter, RESOURCE_ID_FONT_UNIX_TIME_23);
+    text_beat_layer = init_text_layer(BEAT_RECT, GTextAlignmentLeft, RESOURCE_ID_FONT_SWATCH_BEATS_24);
+}
+
+
+static void window_unload(Window *window) {
+    text_layer_destroy(text_beat_layer);
+    text_layer_destroy(text_unix_layer);
+    text_layer_destroy(text_time_layer);
+    text_layer_destroy(text_date_layer);
+    slider_layer_destroy(slider_wday_layer);
+    layer_destroy(background_layer);
+}
+
+
+static void handle_second_tick(struct tm *tick_time, TimeUnits units_changed) {
+    display_time(tick_time);
+}
+
+
+static void init(void) {
     set_timezone_offset();
-    init_display();
 
-    get_time(&init_time);
-    display_time(&init_time);
+    window = window_create();
+    window_set_window_handlers(window, (WindowHandlers) {
+        .load = window_load,
+        .unload = window_unload,
+    });
+    window_stack_push(window, true /* Animated */);
+
+    time_t now = time(NULL);
+    display_time(localtime(&now));
+
+    tick_timer_service_subscribe(SECOND_UNIT, handle_second_tick);
 }
 
 
-void handle_second_tick(AppContextRef ctx, PebbleTickEvent *t) {
-    (void) ctx;
-
-    display_time(t->tick_time);
+static void deinit(void) {
+    window_destroy(window);
 }
 
 
-void pbl_main(void *params) {
-    PebbleAppHandlers handlers = {
-        .init_handler = &handle_init,
-        .tick_info = {
-            .tick_handler = &handle_second_tick,
-            .tick_units = SECOND_UNIT
-        }
-    };
-    app_event_loop(params, &handlers);
+int main(void) {
+  init();
+
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Done initializing, pushed window: %p", window);
+
+  app_event_loop();
+  deinit();
 }

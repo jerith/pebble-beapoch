@@ -1,31 +1,4 @@
-# Object files
-*.o
 
-# Libraries
-*.lib
-*.a
-
-# Shared objects (inc. Windows DLLs)
-*.dll
-*.so
-*.so.*
-*.dylib
-
-# Executables
-*.exe
-*.out
-*.app
-
-# SDK stuff
-/build
-/include
-/lib
-/resources/wscript
-/tools
-/waf
-/wscript
-
-# Build stuff
-*.ld
-/.lock-waf*
-/.waf*
+# Ignore build generated files
+build
+.lock-waf*

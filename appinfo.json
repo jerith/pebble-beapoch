@@ -1,0 +1,40 @@
+{
+  "uuid": "d8d312a8-dca7-411a-bcc8-8b3d2caee0d3",
+  "shortName": "Beapoch",
+  "longName": "Beapoch",
+  "companyName": "jerith",
+  "versionCode": 2,
+  "versionLabel": "2.0.0",
+  "watchapp": {
+    "watchface": true
+  },
+  "appKeys": {},
+  "resources": {
+    "media": [
+      {
+        "characterRegex": "[0-9-]",
+        "type": "font",
+        "name": "FONT_ISO_DATE_23",
+        "file": "fonts/Droid_Sans/DroidSans.ttf"
+      },
+      {
+        "characterRegex": "[0-9:]",
+        "type": "font",
+        "name": "FONT_ISO_TIME_31",
+        "file": "fonts/Droid_Sans/DroidSans.ttf"
+      },
+      {
+        "characterRegex": "[0-9]",
+        "type": "font",
+        "name": "FONT_UNIX_TIME_23",
+        "file": "fonts/Source_Code_Pro/SourceCodePro-Regular.ttf"
+      },
+      {
+        "characterRegex": "[0-9@]",
+        "type": "font",
+        "name": "FONT_SWATCH_BEATS_24",
+        "file": "fonts/Fugaz_One/FugazOne-Regular.ttf"
+      }
+    ]
+  }
+}
