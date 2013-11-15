@@ -238,6 +238,47 @@ static void request_timezone(void) {
 }
 
 
+void in_received_handler(DictionaryIterator *received, void *context) {
+    Tuple *utc_offset_tuple = dict_find(received, BEAPOCH_KEY_UTC_OFFSET);
+
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Received timezone: %s", utc_offset_tuple->value->cstring);
+
+    set_timezone_offset(utc_offset_tuple->value->cstring);
+    persist_write_string(BEAPOCH_KEY_UTC_OFFSET, utc_offset_tuple->value->cstring);
+
+    if (request_timezone_tries_left > 0) {
+        request_timezone_tries_left = 0;
+    }
+}
+
+
+void in_dropped_handler(AppMessageResult reason, void *context) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "App Message Dropped! (%u)", reason);
+}
+
+
+void out_failed_handler(DictionaryIterator *failed, AppMessageResult reason, void *context) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "App Message Send Failed! (%u)", reason);
+}
+
+
+static void acquire_timezone(void) {
+    char utc_offset_str[5];
+
+    if (persist_exists(BEAPOCH_KEY_UTC_OFFSET)) {
+        persist_read_string(BEAPOCH_KEY_UTC_OFFSET, utc_offset_str, sizeof(utc_offset_str));
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "Looked up UTC offset from local storage: %s", utc_offset_str);
+        set_timezone_offset(utc_offset_str);
+        if (request_timezone_tries_left > 0) {
+            request_timezone_tries_left = 0;
+        }
+    } else {
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "No UTC offset in local storage, asking the phone.");
+        request_timezone();
+    }
+}
+
+
 static void handle_second_tick(struct tm *tick_time, TimeUnits units_changed) {
     if (request_timezone_tries_left) {
         request_timezone();
@@ -271,7 +312,7 @@ static void window_load(Window *window) {
     time_t now = time(NULL);
     display_time(localtime(&now));
 
-    request_timezone();
+    acquire_timezone();
     tick_timer_service_subscribe(SECOND_UNIT, handle_second_tick);
 }
 
@@ -285,28 +326,6 @@ static void window_unload(Window *window) {
     text_layer_destroy(text_date_layer);
     slider_layer_destroy(slider_wday_layer);
     layer_destroy(background_layer);
-}
-
-
-void in_received_handler(DictionaryIterator *received, void *context) {
-    Tuple *utc_offset_tuple = dict_find(received, BEAPOCH_KEY_UTC_OFFSET);
-
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Received timezone: %s", utc_offset_tuple->value->cstring);
-
-    set_timezone_offset(utc_offset_tuple->value->cstring);
-    if (request_timezone_tries_left > 0) {
-        request_timezone_tries_left = 0;
-    }
-}
-
-
-void in_dropped_handler(AppMessageResult reason, void *context) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "App Message Dropped! (%u)", reason);
-}
-
-
-void out_failed_handler(DictionaryIterator *failed, AppMessageResult reason, void *context) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "App Message Send Failed! (%u)", reason);
 }
 
 
