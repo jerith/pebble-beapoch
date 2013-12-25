@@ -3,7 +3,7 @@
 #include "slider.h"
 
 
-// TODO: Fix this if and when we get access to timezone data.
+// TODO: Fix this if and when we get native access to timezone data.
 #define DEFAULT_UTC_OFFSET "+0000"
 
 static char utc_offset_str[] = "+0000";
@@ -13,7 +13,7 @@ static int request_timezone_tries_left = 10;  // Try this many times before givi
 
 
 enum {
-  BEAPOCH_KEY_UTC_OFFSET = 0x0,
+    BEAPOCH_KEY_UTC_OFFSET = 0x00,
 };
 
 
@@ -231,6 +231,32 @@ TextLayer *init_text_layer(GRect rect, GTextAlignment align, uint32_t font_res_i
 }
 
 
+static void store_timezone() {
+    int result;
+
+    result = persist_write_string(1, utc_offset_str);
+    if (result < 0) {
+        APP_LOG(APP_LOG_LEVEL_WARNING, "Storing timezone failed: %d", result);
+    } else {
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "Stored timezone: %s", utc_offset_str);
+    }
+}
+
+
+static void get_stored_timezone(void) {
+    char stored_str[sizeof(utc_offset_str)];
+
+    if (!persist_exists(1)) {
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "No stored TZ offset.");
+        // We don't have it persisted, so give up.
+        return;
+    }
+    persist_read_string(1, stored_str, sizeof(stored_str));
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Looked up UTC offset from local storage: %s", stored_str);
+    set_timezone_offset(stored_str);
+}
+
+
 static void request_timezone(void) {
     Tuplet utc_offset_tuple = TupletInteger(BEAPOCH_KEY_UTC_OFFSET, 1);
 
@@ -259,7 +285,8 @@ void in_received_handler(DictionaryIterator *received, void *context) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Received timezone: %s", utc_offset_tuple->value->cstring);
 
     set_timezone_offset(utc_offset_tuple->value->cstring);
-    persist_write_string(BEAPOCH_KEY_UTC_OFFSET, utc_offset_tuple->value->cstring);
+    // Store our timezone for next time.
+    store_timezone();
 
     if (request_timezone_tries_left > 0) {
         request_timezone_tries_left = 0;
@@ -274,24 +301,6 @@ void in_dropped_handler(AppMessageResult reason, void *context) {
 
 void out_failed_handler(DictionaryIterator *failed, AppMessageResult reason, void *context) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "App Message Send Failed! (%u)", reason);
-}
-
-
-static void get_stored_timezone(void) {
-    char utc_offset_str[5];
-
-    if (!persist_exists(BEAPOCH_KEY_UTC_OFFSET)) {
-        // We don't have it persisted, so give up.
-        return;
-    }
-    persist_read_string(BEAPOCH_KEY_UTC_OFFSET, utc_offset_str, sizeof(utc_offset_str));
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Looked up UTC offset from local storage: %s", utc_offset_str);
-    set_timezone_offset(utc_offset_str);
-
-    // We don't need to poll the phone for this, because we already have it.
-    if (request_timezone_tries_left > 0) {
-        request_timezone_tries_left = 0;
-    }
 }
 
 
