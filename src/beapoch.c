@@ -17,15 +17,24 @@ enum {
 };
 
 
-Window *window;
+static Window *window;
 
-Layer *background_layer;
-SliderLayer *slider_wday_layer;
-TextLayer *text_date_layer;
-TextLayer *text_time_layer;
-TextLayer *text_unix_layer;
-TextLayer *text_beat_layer;
-TextLayer *text_utco_layer;
+static Layer *background_layer;
+static SliderLayer *slider_wday_layer;
+static TextLayer *text_date_layer;
+static TextLayer *text_time_layer;
+static TextLayer *text_unix_layer;
+static TextLayer *text_beat_layer;
+static TextLayer *text_utco_layer;
+
+static BitmapLayer *image_bat_layer;
+static BitmapLayer *image_btc_layer;
+
+// TODO: Battery state indicators that match the built-in ones better.
+static GBitmap *img_bat_charging;
+static GBitmap *img_bat_full;
+static GBitmap *img_bat_low;
+static GBitmap *img_bt_disconnected;
 
 
 #define BACKGROUND_COLOR GColorBlack
@@ -71,29 +80,35 @@ TextLayer *text_utco_layer;
 #define ISO_DATE_RECT GRect(ISO_HPADDING + ISO_HPADDING + 2, ISO_DATE_TOP, ISO_TEXT_WIDTH, ISO_DATE_HEIGHT)
 #define ISO_TIME_RECT GRect(ISO_HPADDING + ISO_HPADDING + 2, ISO_TIME_TOP, ISO_TEXT_WIDTH, ISO_TIME_HEIGHT)
 
-
 #define UNIX_TOP 0
 #define UNIX_HPADDING 0
 #define UNIX_HEIGHT 30
-
 #define UNIX_WIDTH (144 - 2 * UNIX_HPADDING)
 #define UNIX_RECT GRect(UNIX_HPADDING, UNIX_TOP, UNIX_WIDTH, UNIX_HEIGHT)
-
 
 #define BEAT_TOP 136
 #define BEAT_LEFT 70
 #define BEAT_HEIGHT 32
-
 #define BEAT_WIDTH (144 - BEAT_LEFT)
 #define BEAT_RECT GRect(BEAT_LEFT, BEAT_TOP, BEAT_WIDTH, BEAT_HEIGHT)
-
 
 #define UTCO_TOP 138
 #define UTCO_LEFT 4
 #define UTCO_HEIGHT 28
-
 #define UTCO_WIDTH (BEAT_LEFT - 2 * UTCO_LEFT)
 #define UTCO_RECT GRect(UTCO_LEFT, UTCO_TOP, UTCO_WIDTH, UTCO_HEIGHT)
+
+#define IBAT_TOP 128
+#define IBAT_LEFT (72 - 4 - 17)
+#define IBAT_HEIGHT 10
+#define IBAT_WIDTH 17
+#define IBAT_RECT GRect(IBAT_LEFT, IBAT_TOP, IBAT_WIDTH, IBAT_HEIGHT)
+
+#define IBTC_TOP 128
+#define IBTC_LEFT (72 + 4)
+#define IBTC_HEIGHT 10
+#define IBTC_WIDTH 16
+#define IBTC_RECT GRect(IBTC_LEFT, IBTC_TOP, IBTC_WIDTH, IBTC_HEIGHT)
 
 
 #define RTOP(rect) (rect.origin.y)
@@ -289,6 +304,36 @@ static void handle_second_tick(struct tm *tick_time, TimeUnits units_changed) {
 }
 
 
+static void handle_battery_state(BatteryChargeState charge) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Battery charge state: charging=%d plugged=%d level=%d%%", charge.is_charging, charge.is_plugged, charge.charge_percent);
+    if (charge.is_charging) {
+        bitmap_layer_set_bitmap(image_bat_layer, img_bat_charging);
+        layer_set_hidden(bitmap_layer_get_layer(image_bat_layer), false);
+    } else if (charge.is_plugged) {
+        bitmap_layer_set_bitmap(image_bat_layer, img_bat_full);
+        layer_set_hidden(bitmap_layer_get_layer(image_bat_layer), false);
+    } else if (charge.charge_percent <= 10) {
+        // This is a guess. It probably won't match the built-in indicator.
+        bitmap_layer_set_bitmap(image_bat_layer, img_bat_low);
+        layer_set_hidden(bitmap_layer_get_layer(image_bat_layer), false);
+    } else {
+        // We're unplugged and not low, so no indicator.
+        layer_set_hidden(bitmap_layer_get_layer(image_bat_layer), true);
+    }
+}
+
+static void handle_bluetooth_state(bool connected) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Bluetooth connection state: %d", connected);
+    if (connected) {
+        // Connected, so nothing to show.
+        layer_set_hidden(bitmap_layer_get_layer(image_btc_layer), true);
+    } else {
+        // Disconnected, show icon.
+        layer_set_hidden(bitmap_layer_get_layer(image_btc_layer), false);
+    }
+}
+
+
 static void window_load(Window *window) {
     Layer *window_layer = window_get_root_layer(window);
 
@@ -311,14 +356,31 @@ static void window_load(Window *window) {
     text_beat_layer = init_text_layer(BEAT_RECT, GTextAlignmentLeft, RESOURCE_ID_FONT_SWATCH_BEATS_24);
     text_utco_layer = init_text_layer(UTCO_RECT, GTextAlignmentLeft, RESOURCE_ID_FONT_TZ_OFFSET_20);
 
+    image_bat_layer = bitmap_layer_create(IBAT_RECT);
+    bitmap_layer_set_alignment(image_bat_layer, GAlignCenter);
+    layer_add_child(window_layer, bitmap_layer_get_layer(image_bat_layer));
+
+    image_btc_layer = bitmap_layer_create(IBTC_RECT);
+    bitmap_layer_set_bitmap(image_btc_layer, img_bt_disconnected);
+    bitmap_layer_set_alignment(image_btc_layer, GAlignCenter);
+    layer_add_child(window_layer, bitmap_layer_get_layer(image_btc_layer));
+
     get_stored_timezone();
     time_t now = time(NULL);
     display_time(localtime(&now));
     tick_timer_service_subscribe(SECOND_UNIT, handle_second_tick);
+
+    handle_battery_state(battery_state_service_peek());
+    battery_state_service_subscribe(handle_battery_state);
+
+    handle_bluetooth_state(bluetooth_connection_service_peek());
+    bluetooth_connection_service_subscribe(handle_bluetooth_state);
 }
 
 
 static void window_unload(Window *window) {
+    bluetooth_connection_service_unsubscribe();
+    battery_state_service_unsubscribe();
     tick_timer_service_unsubscribe();
     text_layer_destroy(text_utco_layer);
     text_layer_destroy(text_beat_layer);
@@ -339,6 +401,12 @@ static void init(void) {
     app_message_register_outbox_failed(out_failed_handler);
     app_message_open(64, 64);
 
+    // Load bitmaps.
+    img_bat_charging = gbitmap_create_with_resource(RESOURCE_ID_IMG_BAT_CHARGING);
+    img_bat_full = gbitmap_create_with_resource(RESOURCE_ID_IMG_BAT_FULL);
+    img_bat_low = gbitmap_create_with_resource(RESOURCE_ID_IMG_BAT_LOW);
+    img_bt_disconnected = gbitmap_create_with_resource(RESOURCE_ID_IMG_BT_DISCONNECTED);
+
     // Window setup.
     window = window_create();
     window_set_window_handlers(window, (WindowHandlers) {
@@ -351,6 +419,12 @@ static void init(void) {
 
 static void deinit(void) {
     window_destroy(window);
+
+    // Clean up bitmaps.
+    gbitmap_destroy(img_bat_charging);
+    gbitmap_destroy(img_bat_full);
+    gbitmap_destroy(img_bat_low);
+    gbitmap_destroy(img_bt_disconnected);
 }
 
 

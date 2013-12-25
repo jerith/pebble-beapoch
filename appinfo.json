@@ -42,6 +42,26 @@
         "type": "font",
         "name": "FONT_SWATCH_BEATS_24",
         "file": "fonts/Fugaz_One/FugazOne-Regular.ttf"
+      },
+      {
+        "type": "png",
+        "name": "IMG_BAT_CHARGING",
+        "file": "images/bat_charging.png"
+      },
+      {
+        "type": "png",
+        "name": "IMG_BAT_FULL",
+        "file": "images/bat_full.png"
+      },
+      {
+        "type": "png",
+        "name": "IMG_BAT_LOW",
+        "file": "images/bat_low.png"
+      },
+      {
+        "type": "png",
+        "name": "IMG_BT_DISCONNECTED",
+        "file": "images/bt_disconnected.png"
       }
     ]
   }
