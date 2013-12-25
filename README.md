@@ -10,6 +10,9 @@ Build status: ![status](https://cloudpebble.net/ide/project/1232/status.png)
 Link to latest successfully built app bundle as soon as the spectacularly
 awesome [CloudPebble](http://cloudpebble.net) supports it.
 
+(An older version that uses the v1 SDK can be found in the `pebble-sdk-v1`
+branch in the git repository.)
+
 License
 -------
 
