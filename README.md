@@ -10,6 +10,8 @@ Build status: ![status](https://cloudpebble.net/ide/project/1232/status.png)
 Link to latest successfully built app bundle as soon as the spectacularly
 awesome [CloudPebble](http://cloudpebble.net) supports it.
 
+Appstore: [![Beapoch on the Pebble appstore](http://pblweb.com/badge/52bae728aac062f2210000a1/orange/small/)](http://pblweb.com/appstore/52bae728aac062f2210000a1)
+
 (An older version that uses the v1 SDK can be found in the `pebble-sdk-v1`
 branch in the git repository.)
 
